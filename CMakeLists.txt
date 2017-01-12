@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project(image-recog)
+find_package(OpenCV REQUIRED)
+add_executable(viking-vision viking-vision.cpp)
+target_link_libraries(viking-vision ${OpenCV_LIBS})
