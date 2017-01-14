@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/luc/projects/viking-vision",
+  "command": "/usr/bin/c++    -isystem /usr/include/opencv    -o CMakeFiles/viking-vision.dir/viking-vision.cpp.o -c /home/luc/projects/viking-vision/viking-vision.cpp",
+  "file": "/home/luc/projects/viking-vision/viking-vision.cpp"
+}
+]

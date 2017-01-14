@@ -13,7 +13,7 @@ using namespace cv::xfeatures2d;
 // Identify quads / Image matching
 
 Mat toGrayscale(Mat src)
- {
+{
 	Mat dst;
 	cvtColor(src, dst, COLOR_BGR2GRAY);
 	return dst;
@@ -26,6 +26,12 @@ Mat brightPass(Mat src)
 	return dst;
 }
 
+Mat blur(Mat src)
+{
+	Mat dst;
+	GaussianBlur(src, dst, Size(13, 13), 40);
+	return dst;
+}
 
 Mat blobbify(Mat src, int radius)
 {
@@ -41,18 +47,23 @@ Mat blobbify(Mat src, int radius)
 	return dst;
 }
 
-Mat outline(Mat src, bool colorShift = false)
+<<<<<<< HEAD
+Mat outline(Mat src)
 {
 	Mat dst(src.rows, src.cols, CV_8U, Scalar(0));
-	dst.zeros(dst.rows, dst.cols, CV_8U);
 	std::vector<std::vector<Point>> contours;
-	findContours(src, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+	findContours(src, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 	for (int i = 0; i < contours.size(); i++)
 	{
-		drawContours(dst, contours, i, Scalar(colorShift ? (42*i)%255 : 255), 1);
+		drawContours(dst, contours, i, Scalar(0xFF), 1);
 	}
-	std::cout << contours << std::endl;
-	return dst;
+	/*std::vector<Vec4i> lines;
+	HoughLinesP(src, lines, 1, CV_PI/2, 40, 20, 3);
+	dst = Mat::zeros(dst.rows, dst.cols, CV_8U);
+	for (int i = 0; i < lines.size(); i++)
+	{
+		line(dst, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0xFF), 1, 8);
+	}*/
 }
 
 Mat quads(Mat src)
@@ -89,9 +100,10 @@ int main(int argc, char** argv)
 	{
 		cap >> frame;
 		frame = toGrayscale(frame);
+		frame = blur(frame);
 		frame = brightPass(frame);
-		frame = blobbify(frame, 5);
 		frame = outline(frame);
+		//frame = blobbify(frame, 1);
 		frame = quads(frame);
 
 		imshow("Output", frame);
