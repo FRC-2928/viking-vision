@@ -1,8 +1,5 @@
 *.sw?
-<<<<<<< HEAD
 viking-vision
-=======
->>>>>>> 362f9a697b4701c6d79f0b5ed870223083b022b1
 Makefile
 CMakeFiles/
 cmake_install.cmake

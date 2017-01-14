@@ -47,7 +47,6 @@ Mat blobbify(Mat src, int radius)
 	return dst;
 }
 
-<<<<<<< HEAD
 Mat outline(Mat src)
 {
 	Mat dst(src.rows, src.cols, CV_8U, Scalar(0));
