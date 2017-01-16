@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(image-recog)
 find_package(OpenCV REQUIRED)
-add_executable(viking-vision viking-vision.cpp)
+add_executable(viking-vision viking-vision.cpp quad-filter.cpp movement.cpp)
 target_link_libraries(viking-vision ${OpenCV_LIBS})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

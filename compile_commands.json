@@ -3,5 +3,15 @@
   "directory": "/home/luc/projects/viking-vision",
   "command": "/usr/bin/c++    -isystem /usr/include/opencv    -o CMakeFiles/viking-vision.dir/viking-vision.cpp.o -c /home/luc/projects/viking-vision/viking-vision.cpp",
   "file": "/home/luc/projects/viking-vision/viking-vision.cpp"
+},
+{
+  "directory": "/home/luc/projects/viking-vision",
+  "command": "/usr/bin/c++    -isystem /usr/include/opencv    -o CMakeFiles/viking-vision.dir/quad-filter.cpp.o -c /home/luc/projects/viking-vision/quad-filter.cpp",
+  "file": "/home/luc/projects/viking-vision/quad-filter.cpp"
+},
+{
+  "directory": "/home/luc/projects/viking-vision",
+  "command": "/usr/bin/c++    -isystem /usr/include/opencv    -o CMakeFiles/viking-vision.dir/movement.cpp.o -c /home/luc/projects/viking-vision/movement.cpp",
+  "file": "/home/luc/projects/viking-vision/movement.cpp"
 }
 ]

@@ -3,6 +3,9 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
+#include "utildefs.h"
+#include "quad-filter.h"
+
 using namespace cv;
 using namespace cv::xfeatures2d;
 
@@ -11,6 +14,11 @@ using namespace cv::xfeatures2d;
 // Blobbify
 // Outline
 // Identify quads / Image matching
+
+bool parallelogram(std::vector<Point>)
+{
+	return true;
+}
 
 Mat toGrayscale(Mat src)
 {
@@ -50,19 +58,25 @@ Mat blobbify(Mat src, int radius)
 Mat outline(Mat src)
 {
 	Mat dst(src.rows, src.cols, CV_8U, Scalar(0));
-	std::vector<std::vector<Point>> contours;
+	std::vector<std::vector<Point>> contours, polys;
+	std::vector<Point> poly;
 	findContours(src, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 	for (int i = 0; i < contours.size(); i++)
 	{
-		drawContours(dst, contours, i, Scalar(0xFF), 1);
+		approxPolyDP(contours[i], poly, 5, true);
+		polys.push_back(poly);
 	}
-	/*std::vector<Vec4i> lines;
-	HoughLinesP(src, lines, 1, CV_PI/2, 40, 20, 3);
-	dst = Mat::zeros(dst.rows, dst.cols, CV_8U);
-	for (int i = 0; i < lines.size(); i++)
+	for (int i = 0; i < polys.size(); i++)
 	{
-		line(dst, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0xFF), 1, 8);
-	}*/
+		if (polys[i].size() == 4)
+		{
+			drawContours(dst, polys, i, Scalar(0xFF));
+			circle(dst, polys[i][0], 3, Scalar(0xFF));
+		}
+	}
+	dst = Mat::zeros(dst.rows, dst.cols, CV_8U);
+	drawContours(dst, pairs(boundingBoxes(polys, (double)5/2, .5), 0.75), -1, Scalar(0xFF));
+	return dst;
 }
 
 Mat quads(Mat src)
