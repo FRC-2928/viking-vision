@@ -49,7 +49,7 @@ Mat blobbify(Mat src, int radius)
 		{
 			if (src.data[r + c * dst.cols] > 1)
 			{
-				circle(dst, Point(r, c), radius, Scalar(src.data[r + c * dst.cols]), -1);
+				ellipse(dst, Point(r, c), Size(radius, radius * 2 / 5), 90, 0, 360, Scalar(src.data[r + c * dst.cols]), -1);
 			}
 		}
 	return dst;
@@ -75,7 +75,7 @@ Mat outline(Mat src)
 		}
 	}
 	dst = Mat::zeros(dst.rows, dst.cols, CV_8U);
-	drawContours(dst, pairs(boundingBoxes(polys, (double)5/2, .5), 0.75), -1, Scalar(0xFF));
+	drawContours(dst, pairs(boundingBoxes(polys, (double)5/2, .75), 1), -1, Scalar(0xFF));
 	return dst;
 }
 
@@ -107,17 +107,25 @@ int main(int argc, char** argv)
 		std::cerr << "Failed to open device " << atoi(argv[1]) << std::endl;
 		return -1;
 	}
+	namedWindow("Grayscale");
+	namedWindow("Blur");
+	namedWindow("BrightPass");
+	namedWindow("Blobbed");
 	namedWindow("Output", WINDOW_AUTOSIZE);
-	cap >> frame; //Throw away first frame
+	for (int i = 0; i < 15; i++)
+		cap >> frame; //Throw away first few frames
 	while (true)
 	{
 		cap >> frame;
 		frame = toGrayscale(frame);
+		imshow("Grayscale", frame);
 		frame = blur(frame);
+		imshow("Blur", frame);
 		frame = brightPass(frame);
+		imshow("BrightPass", frame);
+		frame = blobbify(frame, 15);
+		imshow("Blobbed", frame);
 		frame = outline(frame);
-		//frame = blobbify(frame, 1);
-		frame = quads(frame);
 
 		imshow("Output", frame);
 		if (waitKey(30) == 27)
