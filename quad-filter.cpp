@@ -51,14 +51,10 @@ contours_t pairs(contours_t contours, double tolerance)
 			{
 				paired[j] = true;
 				paired[i] = true;
+				output.push_back(contours[i]);
+				output.push_back(contours[j]);
+				break;
 			}
-		}
-	}
-	for (int i = 0; i < paired.size(); i++)
-	{
-		if (paired[i])
-		{
-			output.push_back(contours[i]);
 		}
 	}
 	return output;
