@@ -1,17 +1,18 @@
 #!/usr/bin/env python2
+
 import cv2
 import sys
 import numpy as np
-from networktables import NetworkTables
+#from networktables import NetworkTables
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.2"
 
-def ntInit(table):
+'''def ntInit(table):
     NetworkTables.initialize(ip)
-    return NetworkTables.getTable(table)
+    return NetworkTables.getTable(table)'''
 
 # From http://stackoverflow.com/questions/4961017/clojure-style-function-threading-in-python
 def T(*args):
@@ -41,17 +42,28 @@ def outline(src):
     cv2.drawContours(dst, contours, -1, (255), 1)
     return dst, contours
 
+def quads(contours):
+    heightWidthRatio = 3
+    tolerance = 1
+    boxes = []
+    polys = []
+    for c in contours:
+        polys.append(cv2.approxPolyDP(c, 5, True))
+    polys = filter(lambda c: len(c) == 4, polys)
+    return polys
+
 def main(camera = 0):
-    vc = ntInit('VisionControl')
+    #vc = ntInit('VisionControl')
     ret = True
     cap = cv2.VideoCapture(camera)
-    #cv2.namedWindow("Output")
+    cv2.namedWindow("Output")
     while ret:
         ret, frame = cap.read()
         frame, contours = outline(T(frame, toGrayscale, brightPass, blur))
-        print len(contours)
-
-        vc.putNumber("frameSum", frame.sum()/255)
+        contours = quads(contours)
+        cv2.drawContours(frame, contours, -1, (127), 3)
+        cv2.imshow("Output", frame)
+        #vc.putNumber("frameSum", frame.sum()/255)
         print frame.sum()/255
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
