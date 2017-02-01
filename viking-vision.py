@@ -5,15 +5,15 @@ import sys
 import cv2
 import sys
 import numpy as np
-#from networktables import NetworkTables
+from networktables import NetworkTables
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.2"
 
-'''def ntInit(table):
+def ntInit(table):
     NetworkTables.initialize(ip)
-    return NetworkTables.getTable(table)'''
+    return NetworkTables.getTable(table)
 
 # From http://stackoverflow.com/questions/4961017/clojure-style-function-threading-in-python
 def T(*args):
@@ -77,13 +77,12 @@ def pairs(contours):
 
 def distanceToCenter(contours, frameWidth):
     centerx = int(frameWidth / 2)
-    centery = int(frameHeight / 2)
     moments = [cv2.moments(c) for c in contours]
     xaverage, count = 0, 0;
     for m in moments:
         cx = m['m10'] / m['m00']
         xaverage += cx
-        count++
+        count += 1
     if count == 0:
         return -2 # Out of range
     xaverage /= count
@@ -99,9 +98,10 @@ def main(camera = 0):
         ret, frame = cap.read()
         frame, contours = outline(T(frame, toGrayscale, brightPass, blur))
         contours = pairs(quads(contours))
-        distance = distanceToCenter(contours, frame.cols)
-        if abs(distance) =< 1:
-            vc.putDouble("detectedValue", distance)
+        distance = distanceToCenter(contours, frame.shape[0])
+        if abs(distance) <= 1:
+            vc.putValue("detectedValue", distance)
+            print distance
         #cv2.drawContours(frame, contours, -1, (127), 3)
         #cv2.imshow("Output", frame)
         #vc.putNumber("frameSum", frame.sum()/255)
