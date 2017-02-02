@@ -5,8 +5,11 @@ import sys
 import cv2
 import sys
 import numpy as np
-from networktables import NetworkTables
+#from networktables import NetworkTables
 import logging
+BLUR_SIZE = (13, 13)
+BLUR_FACTOR = 70
+GREEN_LOWER_LIMIT = 235
 logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.2"
@@ -22,11 +25,14 @@ def T(*args):
 def toGrayscale(src):
     return cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
 
+def toGreenscale(src):
+    return cv2.extractChannel(src, 1)
+
 def brightPass(src):
-    return cv2.inRange(src, 230, 255)
+    return cv2.inRange(src, GREEN_LOWER_LIMIT, 255)
 
 def blur(src):
-    return cv2.GaussianBlur(src, (15, 15), 60)
+    return cv2.GaussianBlur(src, BLUR_SIZE, BLUR_FACTOR)
 
 def blobbify(src):
     data = src.flat
@@ -67,7 +73,7 @@ def pairs(contours):
         for j in range(len(areas)):
             if i == j or outputMask[i] or outputMask[j]:
                 continue
-            if abs(max(areas[i], areas[j])/min(areas[i], areas[j])) - 1 <= 1.5:
+            if abs(max(areas[i], areas[j])/min(areas[i], areas[j])) - 1 <= 2.0:
                 outputMask[i] = True
                 outputMask[j] = True
     for i in range(len(areas)):
@@ -76,34 +82,32 @@ def pairs(contours):
     return output
 
 def distanceToCenter(contours, frameWidth):
-    centerx = int(frameWidth / 2)
-    moments = [cv2.moments(c) for c in contours]
-    xaverage, count = 0, 0;
+    moments = [cv2.moments(c) for c in contours][:2]
+    normalized = []
     for m in moments:
-        cx = m['m10'] / m['m00']
-        xaverage += cx
-        count += 1
-    if count == 0:
-        return -2 # Out of range
-    xaverage /= count
-
-    return 2 * (xaverage - centerx) / frameWidth - 1
+        cx = int(m['m10'] / m['m00'])
+        print cx
+        normalized.append(2*cx/frameWidth - 1)
+    if len(normalized) > 0:
+        return apply(lambda a, b: a + b, normalized) / len(normalized)
+    return -2
 
 def main(camera = 0):
-    vc = ntInit('VisionControl')
+#    vc = ntInit('VisionControl')
     cap = cv2.VideoCapture(camera)
     #cv2.namedWindow("Output")
     ret, frame = cap.read()
+    print frame.shape[0]
     while ret:
         ret, frame = cap.read()
-        frame, contours = outline(T(frame, toGrayscale, brightPass, blur))
+        frame, contours = outline(T(frame, toGreenscale, brightPass, blur))
         contours = pairs(quads(contours))
-        distance = distanceToCenter(contours, frame.shape[0])
+        distance = distanceToCenter(contours, frame.shape[1])
         if abs(distance) <= 1:
-            vc.putValue("detectedValue", distance)
+        #    vc.putValue("detectedValue", distance)
             print distance
-        #cv2.drawContours(frame, contours, -1, (127), 3)
-        #cv2.imshow("Output", frame)
+        cv2.drawContours(frame, contours, -1, (127), 3)
+        cv2.imshow("Output", frame)
         #vc.putNumber("frameSum", frame.sum()/255)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
