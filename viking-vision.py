@@ -93,22 +93,23 @@ def distanceToCenter(contours, frameWidth):
     return -2
 
 def main(camera = 0):
-    vc = ntInit('VisionControl')
+#    vc = ntInit('VisionControl')
     cap = cv2.VideoCapture(camera)
     #cv2.namedWindow("Output")
     ret, frame = cap.read()
     print frame.shape[0]
     while ret:
+        distanceSent = False
         ret, frame = cap.read()
         frame, contours = outline(T(frame, toGreenscale, brightPass, blur))
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])
         if abs(distance) <= 1:
             vc.putValue("detectedValue", distance)
-            print distance
+            distanceSent = True
+        vc.putBoolean("targetLocked", distanceSent)
         cv2.drawContours(frame, contours, -1, (127), 3)
         #cv2.imshow("Output", frame)
-        #vc.putNumber("frameSum", frame.sum()/255)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
     cap.release()
