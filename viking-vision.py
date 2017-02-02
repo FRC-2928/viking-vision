@@ -7,9 +7,10 @@ import sys
 import numpy as np
 from networktables import NetworkTables
 import logging
-BLUR_SIZE = (13, 13)
-BLUR_FACTOR = 70
-GREEN_LOWER_LIMIT = 235
+BLUR_SIZE = (11, 11)
+BLUR_FACTOR = 90
+GREEN_LOWER_LIMIT = 230
+MEDIAN_BLUR_SIZE = 5
 logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.2"
@@ -34,6 +35,8 @@ def brightPass(src):
 def blur(src):
     return cv2.GaussianBlur(src, BLUR_SIZE, BLUR_FACTOR)
 
+def medianBlur(src):
+    return cv2.medianBlur(src, MEDIAN_BLUR_SIZE)
 def blobbify(src):
     data = src.flat
     dims = src.shape
@@ -93,7 +96,7 @@ def distanceToCenter(contours, frameWidth):
     return -2
 
 def main(camera = 0):
-#    vc = ntInit('VisionControl')
+    vc = ntInit('VisionControl')
     cap = cv2.VideoCapture(camera)
     #cv2.namedWindow("Output")
     ret, frame = cap.read()
@@ -101,7 +104,7 @@ def main(camera = 0):
     while ret:
         distanceSent = False
         ret, frame = cap.read()
-        frame, contours = outline(T(frame, toGreenscale, brightPass, blur))
+        frame, contours = outline(T(frame, toGreenscale, brightPass, medianBlur))
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])
         if abs(distance) <= 1:
