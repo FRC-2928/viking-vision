@@ -5,7 +5,7 @@ import sys
 import cv2
 import sys
 import numpy as np
-#from networktables import NetworkTables
+from networktables import NetworkTables
 import logging
 BLUR_SIZE = (13, 13)
 BLUR_FACTOR = 70
@@ -104,10 +104,10 @@ def main(camera = 0):
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])
         if abs(distance) <= 1:
-        #    vc.putValue("detectedValue", distance)
+            vc.putValue("detectedValue", distance)
             print distance
         cv2.drawContours(frame, contours, -1, (127), 3)
-        cv2.imshow("Output", frame)
+        #cv2.imshow("Output", frame)
         #vc.putNumber("frameSum", frame.sum()/255)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
