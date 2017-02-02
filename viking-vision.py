@@ -93,7 +93,7 @@ def distanceToCenter(contours, frameWidth):
     return -2
 
 def main(camera = 0):
-#    vc = ntInit('VisionControl')
+    vc = ntInit('VisionControl')
     cap = cv2.VideoCapture(camera)
     #cv2.namedWindow("Output")
     ret, frame = cap.read()
