@@ -9,8 +9,11 @@ from networktables import NetworkTables
 import logging
 BLUR_SIZE = (11, 11)
 BLUR_FACTOR = 90
-GREEN_LOWER_LIMIT = 230
+GREEN_LOWER_LIMIT = 235
 MEDIAN_BLUR_SIZE = 5
+HEIGHT_WIDTH_RATIO = 5/2
+HEIGHT_WIDTH_TOLERANCE = .85
+AREA_TOLERANCE = 1.7
 logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.56"
@@ -53,15 +56,13 @@ def outline(src):
     return dst, contours
 
 def quads(contours):
-    heightWidthRatio = 5/2
-    tolerance = 0.75
     output = []
     boxes = []
     polys = [cv2.approxPolyDP(c, 5, True) for c in contours]
     polys = filter(lambda c: len(c) == 4, polys)
     for p in polys:
         _, _, w, h = cv2.boundingRect(p)
-        boxes.append(abs(h/w - heightWidthRatio) <= tolerance)
+        boxes.append(abs(h/w - HEIGHT_WIDTH_RATIO) <= HEIGHT_WIDTH_TOLERANCE)
     for i in range(len(boxes)):
         if boxes[i]:
             output.append(polys[i])
@@ -76,7 +77,7 @@ def pairs(contours):
         for j in range(len(areas)):
             if i == j or outputMask[i] or outputMask[j]:
                 continue
-            if abs(max(areas[i], areas[j])/min(areas[i], areas[j])) - 1 <= 2.0:
+            if abs(max(areas[i], areas[j])/min(areas[i], areas[j])) - 1 <= AREA_TOLERANCE:
                 outputMask[i] = True
                 outputMask[j] = True
     for i in range(len(areas)):
@@ -111,7 +112,7 @@ def main(camera = 0):
             distanceSent = True
         logging.info(str((distance, distanceSent)))
         vc.putBoolean("targetLocked", distanceSent)
-        cv2.drawContours(frame, contours, -1, (127), 3)
+ #       cv2.drawContours(frame, contours, -1, (127), 3)
         #cv2.imshow("Output", frame)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
