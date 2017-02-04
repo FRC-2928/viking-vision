@@ -13,7 +13,7 @@ GREEN_LOWER_LIMIT = 230
 MEDIAN_BLUR_SIZE = 5
 logging.basicConfig(level=logging.DEBUG)
 
-ip = "10.29.28.2"
+ip = "10.29.28.56"
 
 def ntInit(table):
     NetworkTables.initialize(ip)
@@ -89,7 +89,6 @@ def distanceToCenter(contours, frameWidth):
     normalized = []
     for m in moments:
         cx = int(m['m10'] / m['m00'])
-        print cx
         normalized.append(2*cx/frameWidth - 1)
     if len(normalized) > 0:
         return apply(lambda a, b: a + b, normalized) / len(normalized)
@@ -110,6 +109,7 @@ def main(camera = 0):
         if abs(distance) <= 1:
             vc.putValue("detectedValue", distance)
             distanceSent = True
+        logging.info(str((distance, distanceSent)))
         vc.putBoolean("targetLocked", distanceSent)
         cv2.drawContours(frame, contours, -1, (127), 3)
         #cv2.imshow("Output", frame)
