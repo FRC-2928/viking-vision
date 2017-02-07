@@ -1,11 +1,10 @@
 #!/usr/bin/env python2
 from __future__ import division
 import sys
-
+import argparse
 import cv2
 import sys
 import numpy as np
-from networktables import NetworkTables
 import logging
 BLUR_SIZE = (11, 11)
 BLUR_FACTOR = 90
@@ -95,28 +94,65 @@ def distanceToCenter(contours, frameWidth):
         return apply(lambda a, b: a + b, normalized) / len(normalized)
     return -2
 
-def main(camera = 0):
-    vc = ntInit('VisionControl')
+def blobFilter(src):
+    params = cv2.SimpleBlobDetector_Params()
+    params.minThreshold = 0
+    params.maxThreshold = 0xFF
+    params.filterByArea = True
+    params.minArea = 100
+    params.maxArea = 10000
+    params.filterByCircularity = True
+    params.minCircularity = 0.6
+    params.maxCircularity = 0.85
+    params.filterByColor = False
+    params.filterByConvexity = True
+    params.minConvexity = 0.7
+    params.maxConvexity = 1
+    params.filterByInertia = True
+    params.minInertiaRatio = 0
+    params.maxInertiaRatio = 0.6
+    detector = cv2.SimpleBlobDetector_create(params)
+    keypoints = detector.detect(src)
+    print [kp.pt for kp in keypoints]
+    return keypoints
+
+def main(camera, display, haveNetworktables):
+    if haveNetworktables:
+        vc = ntInit('VisionControl')
+    if display:
+        cv2.namedWindow("Output")
     cap = cv2.VideoCapture(camera)
-    #cv2.namedWindow("Output")
     ret, frame = cap.read()
     print frame.shape[0]
     while ret:
         distanceSent = False
         ret, frame = cap.read()
-        frame, contours = outline(T(frame, toGreenscale, brightPass, medianBlur))
+        frame = T(frame, toGreenscale, brightPass, medianBlur)
+        frame2 = frame.copy()
+        frame, contours = outline(frame)
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])
         if abs(distance) <= 1:
-            vc.putValue("detectedValue", distance)
+            if haveNetworktables:
+                vc.putValue("detectedValue", distance)
             distanceSent = True
         logging.info(str((distance, distanceSent)))
-        vc.putBoolean("targetLocked", distanceSent)
- #       cv2.drawContours(frame, contours, -1, (127), 3)
-        #cv2.imshow("Output", frame)
+        if haveNetworktables:
+            vc.putBoolean("targetLocked", distanceSent)
+        if display:
+            cv2.drawContours(frame, contours, -1, (127), 3)
+            cv2.drawKeypoints(frame2, blobFilter(frame), frame2, 0x7F, cv2.DRAW_MATCHES_FLAGS_DRAW_OVER_OUTIMG)
+            cv2.imshow("Output", frame2)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
     cap.release()
 
 if __name__ == "__main__":
-    main(0 if len(sys.argv) < 2 else int(sys.argv[1]))
+    parser = argparse.ArgumentParser(description="Vision tracking script for FRC team 2928.")
+    parser.add_argument("camera", help="camera input to use", type=int, default=0, nargs="?")
+    parser.add_argument("-d", "--debug", help="displays the processed video feed (requires X Windows)", action="store_true")
+    parser.add_argument("-n", "--no-networktables", help="disables networktables", action="store_true")
+    args = parser.parse_args()
+    if not args.no_networktables:
+        from networktables import NetworkTables
+    main(args.camera, args.debug, not args.no_networktables)
