@@ -111,7 +111,7 @@ def blobFilter(src):
     params.filterByInertia = True
     params.minInertiaRatio = 0
     params.maxInertiaRatio = 0.6
-    params.minDistBetweenBlobs = 50
+    params.minDistBetweenBlobs = 0
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(src)
     keypoints.sort(key = lambda kp: kp.size)
