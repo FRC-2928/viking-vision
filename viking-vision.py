@@ -127,6 +127,7 @@ def main(camera, display, haveNetworktables):
     cap = cv2.VideoCapture(camera)
     ret, frame = cap.read()
     print frame.shape[0]
+    distance, oldDistance = 0, 0
     while ret:
         distanceSent = False
         ret, frame = cap.read()
@@ -135,10 +136,12 @@ def main(camera, display, haveNetworktables):
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])'''
         keypoints = blobFilter(frame)
+        oldDistance = distance
         if len(keypoints) >= 1:
             distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
+            oldDistance = distance * .65 + oldDistance * .35
         else:
-            distance = -2
+            distance = oldDistance
         if abs(distance) <= 1:
             if haveNetworktables:
                 vc.putValue("detectedValue", distance)
