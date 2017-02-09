@@ -99,21 +99,24 @@ def blobFilter(src):
     params.minThreshold = 0
     params.maxThreshold = 0xFF
     params.filterByArea = True
-    params.minArea = 100
+    params.minArea = 125
     params.maxArea = 10000
     params.filterByCircularity = True
-    params.minCircularity = 0.6
-    params.maxCircularity = 0.85
+    params.minCircularity = 0.5
+    params.maxCircularity = 0.95
     params.filterByColor = False
     params.filterByConvexity = True
-    params.minConvexity = 0.7
+    params.minConvexity = 0.6
     params.maxConvexity = 1
     params.filterByInertia = True
     params.minInertiaRatio = 0
     params.maxInertiaRatio = 0.6
+    params.minDistBetweenBlobs = 50
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(src)
-    print [kp.pt for kp in keypoints]
+    keypoints.sort(key = lambda kp: kp.size)
+    keypoints = keypoints[:2]
+    print keypoints
     return keypoints
 
 def main(camera, display, haveNetworktables):
@@ -128,10 +131,14 @@ def main(camera, display, haveNetworktables):
         distanceSent = False
         ret, frame = cap.read()
         frame = T(frame, toGreenscale, brightPass, medianBlur)
-        frame2 = frame.copy()
-        frame, contours = outline(frame)
+        '''frame, contours = outline(frame)
         contours = pairs(quads(contours))
-        distance = distanceToCenter(contours, frame.shape[1])
+        distance = distanceToCenter(contours, frame.shape[1])'''
+        keypoints = blobFilter(frame)
+        if len(keypoints) >= 1:
+            distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
+        else:
+            distance = -2
         if abs(distance) <= 1:
             if haveNetworktables:
                 vc.putValue("detectedValue", distance)
@@ -140,9 +147,8 @@ def main(camera, display, haveNetworktables):
         if haveNetworktables:
             vc.putBoolean("targetLocked", distanceSent)
         if display:
-            cv2.drawContours(frame, contours, -1, (127), 3)
-            cv2.drawKeypoints(frame2, blobFilter(frame), frame2, 0x7F, cv2.DRAW_MATCHES_FLAGS_DRAW_OVER_OUTIMG)
-            cv2.imshow("Output", frame2)
+            cv2.drawKeypoints(frame, keypoints, frame, 0x7F, cv2.DRAW_MATCHES_FLAGS_DRAW_OVER_OUTIMG)
+            cv2.imshow("Output", frame)
         if(cv2.waitKey(30) & 0xFF == ord('q')):
             break
     cap.release()
