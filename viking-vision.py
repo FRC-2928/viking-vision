@@ -115,12 +115,12 @@ def blobFilter(src):
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(src)
     # Applies the deadzone
-    keypoints = filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt.y <= (1 - VISION_DEADZONE[1]) * src.shape[1])
+    keypoints = filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt.y <= (1 - VISION_DEADZONE[1]) * src.shape[1], keypoints)
     # Take the largest 2 blobs
     keypoints.sort(key = lambda kp: kp.size)
     return keypoints[:2]
 
-def main(camera, display, haveNetworktables, nt_suffix, address):
+def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
     if haveNetworktables:
         vc = ntInit('VisionControl', address)
     if display:
@@ -146,7 +146,7 @@ def main(camera, display, haveNetworktables, nt_suffix, address):
             distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
             previousDistances.appendleft(distance)
         elif len(previousDistances) > 1:
-            distance = sum(map(lambda a, b: a * b, previousDistances[:3], [0.5, 0.35, 0.15][:len(previousDistances)))
+            distance = sum(map(lambda a, b: a * b, previousDistances[:3], [0.5, 0.35, 0.15][:len(previousDistances)]))
         else:
             distance = -2
         if abs(distance) <= 1:
