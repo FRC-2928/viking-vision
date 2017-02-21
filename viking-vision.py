@@ -115,7 +115,7 @@ def blobFilter(src):
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(src)
     # Applies the deadzone
-    keypoints = filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt.y <= (1 - VISION_DEADZONE[1]) * src.shape[1], keypoints)
+    keypoints = filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt[1] <= (1 - VISION_DEADZONE[1]) * src.shape[1], keypoints)
     # Take the largest 2 blobs
     keypoints.sort(key = lambda kp: kp.size)
     return keypoints[:2]
