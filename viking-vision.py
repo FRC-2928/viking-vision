@@ -146,7 +146,7 @@ def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
             distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
             previousDistances.appendleft(distance)
         elif len(previousDistances) > 1:
-            distance = sum(map(lambda a, b: a * b, previousDistances[:3], [0.5, 0.35, 0.15][:len(previousDistances)]))
+            distance = sum(map(lambda a, b: a * b, previousDistances, [0.5, 0.35, 0.15][:len(previousDistances)]))
         else:
             distance = -2
         if abs(distance) <= 1:
