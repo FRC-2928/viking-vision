@@ -7,6 +7,7 @@ import cv2
 import sys
 import numpy as np
 import logging
+import math
 # Constants
 BLUR_SIZE = (11, 11) # Size for the gaussian blur (not used)
 BLUR_FACTOR = 90 # Blur factor for the gaussian blur (not used)
@@ -18,7 +19,6 @@ AREA_TOLERANCE = 1.7 # tolerance for the ratio of the areas of selected contours
 VISION_DEADZONE = (0.3, 0.3) # 30% off the top and bottom when choosing blobs
 logging.basicConfig(level=logging.DEBUG)
 
-
 def ntInit(table, ip):
     NetworkTables.initialize(ip)
     return NetworkTables.getTable(table)
@@ -26,6 +26,9 @@ def ntInit(table, ip):
 # From http://stackoverflow.com/questions/4961017/clojure-style-function-threading-in-python
 def T(*args):
     return reduce(lambda l, r: r(l), args)
+
+def notRedPass(src):
+    return cv2.inRange(src, (0, 235, 0), (175, 255, 175))
 
 def toGrayscale(src):
     return cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
@@ -60,6 +63,9 @@ def quads(contours):
         if boxes[i]:
             output.append(polys[i])
     return output
+
+def pointDistance(p1, p2):
+    return math.sqrt((p1[0] - p2[0]) ^ 2 + (p1[1] - p2[1]) ^ 2)
 
 def pairs(contours):
     areas = [cv2.contourArea(c) for c in contours]
@@ -102,23 +108,32 @@ def blobFilter(src):
     params.minArea = 125
     params.maxArea = 10000
     params.filterByCircularity = True
-    params.minCircularity = 0.5
-    params.maxCircularity = 0.95
+    params.minCircularity = 0.4
+    params.maxCircularity = 0.85
     params.filterByColor = False
     params.filterByConvexity = True
     params.minConvexity = 0.6
     params.maxConvexity = 1
-    params.filterByInertia = True
-    params.minInertiaRatio = 0
-    params.maxInertiaRatio = 0.6
-    params.minDistBetweenBlobs = 0
+    params.filterByInertia = False
+    '''params.minInertiaRatio = 0
+    params.maxInertiaRatio = 0.6'''
+    params.minDistBetweenBlobs = 3
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(src)
     # Applies the deadzone
-    keypoints = filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt[1] <= (1 - VISION_DEADZONE[1]) * src.shape[1], keypoints)
-    # Take the largest 2 blobs
-    keypoints.sort(key = lambda kp: kp.size)
-    return keypoints[:2]
+    return filter(lambda kp: VISION_DEADZONE[0] * src.shape[0] <= kp.pt[1] <= (1 - VISION_DEADZONE[1]) * src.shape[1], keypoints)
+
+def blobsQuadFilter(keypoints, contours):
+    moments = [cv2.moments(c) for c in contours]
+    centers = [(int(m['m10'] / m['m00']), int(m['m01']/m['m00'])) for m in moments]
+    output = []
+    for c in centers:
+        for k in keypoints:
+            if pointDistance(k.pt, c) < 25:
+                output.append(k)
+                break
+    output.sort(key = lambda kp: kp.size)
+    return output
 
 def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
     if haveNetworktables:
@@ -127,6 +142,7 @@ def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
         cv2.namedWindow("Output")
     cap = cv2.VideoCapture(camera)
     ret, frame = cap.read()
+    misses = 0
     distance = 0
     previousDistances = collections.deque(maxlen = 3)
     while ret:
@@ -138,14 +154,18 @@ def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
         if raw_feed:
             feed = frame.copy()
         frame = T(frame, toGreenscale, brightPass, medianBlur)
+        _, contours = outline(frame)
+        contours = quads(contours)
         '''frame, contours = outline(frame)
         contours = pairs(quads(contours))
         distance = distanceToCenter(contours, frame.shape[1])'''
-        keypoints = blobFilter(frame)
+        keypoints = blobsQuadFilter(blobFilter(frame), contours)[:2]
         if len(keypoints) >= 1:
+            misses = 0
             distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
             previousDistances.appendleft(distance)
-        elif len(previousDistances) > 1:
+        elif len(previousDistances) > 1 and misses <= 5:
+            misses += 1
             distance = sum(map(lambda a, b: a * b, previousDistances, [0.5, 0.35, 0.15][:len(previousDistances)]))
         else:
             distance = -2
