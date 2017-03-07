@@ -39,6 +39,7 @@ def blur(src):
 
 def medianBlur(src):
     return cv2.medianBlur(src, MEDIAN_BLUR_SIZE)
+
 def blobbify(src):
     data = src.flat
     dims = src.shape
@@ -91,8 +92,19 @@ def distanceToCenter(contours, frameWidth):
         cx = int(m['m10'] / m['m00'])
         normalized.append(2*cx/frameWidth - 1)
     if len(normalized) > 0:
-        return apply(lambda a, b: a + b, normalized) / len(normalized)
+        return sum(normalized) / len(normalized)
     return -2
+
+def degreesToCenter(contours, frameWidth):
+    distances = []
+    for m in [cv2.moments(c) for c in contours][:2]:
+        cx = int(m['m10'] / m['m00'])
+        distances.append(cx)
+    if len(distances) > 0:
+        distance = sum(distances) / len(distances)
+        return (distance / frameWidth * 61) - 30.5
+    return -2
+        
 
 def blobFilter(src):
     params = cv2.SimpleBlobDetector_Params()
@@ -138,7 +150,7 @@ def main(camera, display, haveNetworktables):
         keypoints = blobFilter(frame)
         oldDistance = distance
         if len(keypoints) >= 1:
-            distance = sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 1
+            distance = 61 * sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 30.5
             oldDistance = distance * .65 + oldDistance * .35
         else:
             distance = oldDistance
