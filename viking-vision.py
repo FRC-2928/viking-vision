@@ -111,7 +111,7 @@ def blobFilter(src):
     params.minThreshold = 0
     params.maxThreshold = 0xFF
     params.filterByArea = True
-    params.minArea = 125
+    params.minArea = 150
     params.maxArea = 10000
     params.filterByCircularity = True
     params.minCircularity = 0.5
