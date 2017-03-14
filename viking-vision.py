@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+    #!/usr/bin/env python2
 from __future__ import division
 import sys
 import argparse
@@ -6,6 +6,8 @@ import cv2
 import sys
 import numpy as np
 import logging
+import collections
+
 BLUR_SIZE = (11, 11)
 BLUR_FACTOR = 90
 GREEN_LOWER_LIMIT = 235
@@ -17,7 +19,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 ip = "10.29.28.56"
 
-def ntInit(table):
+def ntInit(table, addr = ip):
     NetworkTables.initialize(ip)
     return NetworkTables.getTable(table)
 
@@ -131,36 +133,36 @@ def blobFilter(src):
     print keypoints
     return keypoints
 
-def main(camera, display, haveNetworktables):
+def main(camera, display, haveNetworktables, raw_feed, nt_suffix, address):
     if haveNetworktables:
-        vc = ntInit('VisionControl')
+        vc = ntInit('VisionControl', address)
     if display:
         cv2.namedWindow("Output")
     cap = cv2.VideoCapture(camera)
     ret, frame = cap.read()
-    print frame.shape[0]
-    distance, oldDistance = 0, 0
+    misses = 0
+    distance = 0
+    previousDistances = collections.deque(maxlen = 3)
     while ret:
         distanceSent = False
         ret, frame = cap.read()
+        if raw_feed:
+            feed = frame.copy()
         frame = T(frame, toGreenscale, brightPass, medianBlur)
-        '''frame, contours = outline(frame)
-        contours = pairs(quads(contours))
-        distance = distanceToCenter(contours, frame.shape[1])'''
         keypoints = blobFilter(frame)
-        oldDistance = distance
         if len(keypoints) >= 1:
             distance = 61 * sum([kp.pt[0] for kp in keypoints]) / frame.shape[1] - 30.5
-            oldDistance = distance * .65 + oldDistance * .35
+            previousDistances.appendleft(distance)
+            misses = 0
+        elif len(previousDistances) > 1 and misses <= 5:
+            misses += 1
+            distance = sum(map(lambda a, b: a * b, previousDistances, [0.5, 0.35, 0.15][:len(previousDistances)]))
         else:
-            distance = oldDistance
-        if abs(distance) <= 1:
-            if haveNetworktables:
-                vc.putValue("detectedValue", distance)
-            distanceSent = True
+            distance = -70
+        vc.putValue("detectedValue" + nt_suffix, distance)
         logging.info(str((distance, distanceSent)))
         if haveNetworktables:
-            vc.putBoolean("targetLocked", distanceSent)
+            vc.putBoolean("targetLocked" + nt_suffix, distanceSent)
         if display:
             cv2.drawKeypoints(frame, keypoints, frame, 0x7F, cv2.DRAW_MATCHES_FLAGS_DRAW_OVER_OUTIMG)
             cv2.imshow("Output", frame)
@@ -169,11 +171,14 @@ def main(camera, display, haveNetworktables):
     cap.release()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Vision tracking script for FRC team 2928.")
+    parser = argparse.ArgumentParser(description="Vision tracking script for FRC team 2928.", epilog="When using NetworkTables and 2 seperate processes (for 2 cameras), be sure to set different suffixes. They should just be Left and Right, but double check the vision subsystem in the robot code just to be sure.")
     parser.add_argument("camera", help="camera input to use", type=int, default=0, nargs="?")
+    parser.add_argument("-s", "--nt-suffix", help="suffix for NetworkTables keys", type=str, default="", nargs="?")
     parser.add_argument("-d", "--debug", help="displays the processed video feed (requires X Windows)", action="store_true")
     parser.add_argument("-n", "--no-networktables", help="disables networktables", action="store_true")
+    parser.add_argument("-f", "--raw-feed", help="shows a raw camera feed", action="store_true")
+    parser.add_argument("-a", "--address", help="IP address to use for the roborio", default="10.29.28.56", type=str, nargs="?")
     args = parser.parse_args()
     if not args.no_networktables:
         from networktables import NetworkTables
-    main(args.camera, args.debug, not args.no_networktables)
+    main(args.camera, args.debug, not args.no_networktables, args.raw_feed, args.nt_suffix, args.address)
